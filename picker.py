@@ -15,6 +15,7 @@ import webbrowser
 location = (os.path.abspath( 'picker.py' ))
 locationofcore = location.replace( r"picker.py", r"Tesseract Core\Tesseract.exe" )
 locationofpicture = location.replace( "picker.py", r"\Buffer\screenshot.png" )
+locationofpicture1 = location.replace( "picker.py", r"\Buffer\rotation.png" )
 pytesseract.pytesseract.tesseract_cmd = locationofcore
 root = tkinter.Tk()
 root.geometry( '300x300+400+300' )
@@ -103,6 +104,44 @@ def recognizeafile():
 # part of the code has the reference : http://www.10tiao.com/html/383/201609/2247483779/1.html
 # some other websites may include the code like this, like https://cloud.tencent.com/developer/article/1097904
 #Cited from https://www.cnblogs.com/polly333/p/7280764.html
+# ====================================
+#Experimental Functions
+import cv2
+import math
+import numpy
+from scipy import misc, ndimage
+
+def Hoff():
+    filename3 = tkinter.filedialog.askopenfilename()
+    img = cv2.imread( filename3)
+    gray = cv2.cvtColor( img, cv2.COLOR_BGR2GRAY )
+    edges = cv2.Canny( gray, 50, 150, apertureSize=3 )
+    lines = cv2.HoughLines( edges, 1, numpy.pi / 180, 0 )
+    for rho, theta in lines[0]:
+        a = numpy.cos( theta )
+        b = numpy.sin( theta )
+        x0 = a * rho
+        y0 = b * rho
+        x1 = int( x0 + 1000 * (-b) )
+        y1 = int( y0 + 1000 * (a) )
+        x2 = int( x0 - 1000 * (-b) )
+        y2 = int( y0 - 1000 * (a) )
+    if x1 == x2 or y1 == y2:
+        pass
+    t = float( y2 - y1 ) / (x2 - x1)
+    rotate_angle = math.degrees( math.atan( t ) )
+    if rotate_angle > 45:
+        rotate_angle = -90 + rotate_angle
+    elif rotate_angle < -45:
+        rotate_angle = 90 + rotate_angle
+    rotate_img = ndimage.rotate( img, rotate_angle )
+    misc.imsave(locationofpicture1, rotate_img )
+    code3 = pytesseract.image_to_string( locationofpicture1, lang="eng" )
+    f = open(location.replace( "picker.py", r"\Buffer\temp.txt" ), 'w' )
+    f.write(code3)
+    pyperclip.copy(code3)
+
+#part of the code has the reference https://blog.csdn.net/feilong_csdn/article/details/81586322
 
 buttonCapture = tkinter.Button( root, text='screenshot to clipboard', command=buttonCaptureClick )
 buttonCapture.place( x=10, y=10, width=275, height=20 )
@@ -110,6 +149,8 @@ recognizeafile = tkinter.Button( root, text='recognize from a file to clipboard'
 recognizeafile.place( x=10, y=30, width=275, height=20 )
 versioninfo = tkinter.Button( root, text='version and copyright info', command=versioninfo)
 versioninfo.place( x=10, y=50, width=275, height=20 )
-#enhancedrecognize = tkinter.Button( root, text='(experimental)recognize EX', command=enhancerecognize)
-#enhancedrecognize.place( x=10, y=70, width=275, height=20 )
+Hoffman = tkinter.Button( root, text="(experimental) Hough transform ", command=Hoff)
+Hoffman.place( x=10, y=70, width=275, height=20 )
+
 root.mainloop()
+
